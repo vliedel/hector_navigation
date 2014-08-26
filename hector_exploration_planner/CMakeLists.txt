@@ -30,7 +30,7 @@ gencfg()
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
-#rosbuild_gensrv()
+rosbuild_gensrv()
 
 rosbuild_add_library(${PROJECT_NAME} src/hector_exploration_planner.cpp)
 

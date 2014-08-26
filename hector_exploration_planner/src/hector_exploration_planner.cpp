@@ -85,6 +85,8 @@ void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2
   observation_pose_pub_ = private_nh_.advertise<geometry_msgs::PoseStamped>("observation_pose", 1, true);
   goal_pose_pub_ = private_nh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 1, true);
 
+  exploration_goal_srv_ = private_nh_.advertiseService("exploration_goal", &HectorExplorationPlanner::explorationGoalService, this);
+
   dyn_rec_server_.reset(new dynamic_reconfigure::Server<hector_exploration_planner::ExplorationPlannerConfig>(ros::NodeHandle("~/hector_exploration_planner")));
 
   dyn_rec_server_->setCallback(boost::bind(&HectorExplorationPlanner::dynRecParamCallback, this, _1, _2));
@@ -120,6 +122,16 @@ void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::E
   double angle_rad = config.observation_pose_allowed_angle * (M_PI / 180.0);
   p_cos_of_allowed_observation_pose_angle_ = cos(angle_rad);
   p_close_to_path_target_distance_ = config.close_to_path_target_distance;
+}
+
+bool HectorExplorationPlanner::explorationGoalService(GetExplorationGoal::Request& req, GetExplorationGoal::Response& resp) {
+  ROS_INFO("exploration goal service called");
+  std::vector<geometry_msgs::PoseStamped> plan;
+  bool success = doExploration(req.start, plan);
+  if (success) {
+    resp.goal = plan.back();
+  }
+  return success;
 }
 
 bool HectorExplorationPlanner::makePlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &original_goal, std::vector<geometry_msgs::PoseStamped> &plan){
@@ -414,6 +426,9 @@ bool HectorExplorationPlanner::getObservationPose(const geometry_msgs::PoseStamp
     }
   }
 
+  std::string global_frame = costmap_ros_->getGlobalFrameID();
+  new_observation_pose.header.frame_id = global_frame;
+
   if (no_information){
     new_observation_pose.pose = observation_pose.pose;
     new_observation_pose.pose.position.z = 0.0;
@@ -433,7 +448,6 @@ bool HectorExplorationPlanner::getObservationPose(const geometry_msgs::PoseStamp
     Eigen::Vector2d original_goal_pose(observation_pose.pose.position.x, observation_pose.pose.position.y);
 
     //geometry_msgs::PoseStamped pose;
-    new_observation_pose.header.frame_id = "map";
     new_observation_pose.header.stamp = observation_pose.header.stamp;
 
     Eigen::Vector2d dir_vec(original_goal_pose - closest_point_world);
@@ -1525,6 +1539,9 @@ bool HectorExplorationPlanner::findInnerFrontier(std::vector<geometry_msgs::Pose
       }
       return true;
     }
+  }
+  else{
+	ROS_WARN("Could not retrieve robot trace");
   }
   return false;
 }

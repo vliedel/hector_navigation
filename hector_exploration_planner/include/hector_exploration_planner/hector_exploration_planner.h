@@ -37,6 +37,7 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
+#include <hector_exploration_planner/GetExplorationGoal.h>
 
 #include <boost/shared_array.hpp>
 
@@ -107,6 +108,7 @@ private:
   unsigned int cellDanger(int point);
   unsigned int angleDanger(float angle);
 
+  bool explorationGoalService(GetExplorationGoal::Request& req, GetExplorationGoal::Response& resp);
   void saveMaps(std::string path);
   void resetMaps();
   void clearFrontiers();
@@ -134,6 +136,8 @@ private:
 
   ros::Publisher observation_pose_pub_;
   ros::Publisher goal_pose_pub_;
+
+  ros::ServiceServer exploration_goal_srv_; // Service to calculate an exploration plan and get the last pose of this plan as goal
 
   ros::Publisher visualization_pub_;
   ros::ServiceClient path_service_client_;
